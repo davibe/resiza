@@ -14,19 +14,34 @@ import Silica
 @NSApplicationMain
 class AppDelegate: NSObject, NSApplicationDelegate {
     
-    func applicationDidFinishLaunching(_ notification: Notification) {
-    }
+    func applicationDidFinishLaunching(_ notification: Notification) {}
     
     func applicationWillFinishLaunching(_ notification: Notification) {
         let app:NSApplication = NSApplication.shared()
-        app.setActivationPolicy(.prohibited)
         let window:NSWindow = app.windows[0]
         window.setIsVisible(false)
-        
-        AppDelegate.windowsRefit()
-        NSApp.terminate(nil)
     }
     
+    // this is a hack to detect dock icon clicks
+    // (http://www.cocoabuilder.com/archive/cocoa/238362-how-to-detect-click-on-app-dock-icon-when-the-app-is-active.html)
+    func applicationShouldOpenUntitledFile(_ sender: NSApplication) -> Bool {
+        return true
+    }
+    func applicationOpenUntitledFile(_ sender: NSApplication) -> Bool {
+        reactivatePreviousAppAndThen {
+            AppDelegate.windowsRefit()
+        }
+        return true
+    }
+    
+    func reactivatePreviousAppAndThen(callback: @escaping(() -> Void)) {
+        NSWorkspace.shared().frontmostApplication!.hide()
+        // it takes time to hide current app and select previous one, apparently
+        Timer.scheduledTimer(withTimeInterval: 0.01, repeats: false) { (timer) in
+            callback()
+        }
+    }
+ 
     class func windowsRefit() {
         let app = NSWorkspace.shared().frontmostApplication
         
